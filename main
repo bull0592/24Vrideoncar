@@ -1,0 +1,121 @@
+// =======================================================================================
+//                         24v Converstion - Stiaan Polaris
+// =======================================================================================
+//                Modified: bull0592, Original Written By: PatchBOTS
+// =======================================================================================
+//                     microcontroller  ---  Arduino Nano (5v)
+// --------------------------------------------------------------------------------------
+//
+//                                    Nano
+//                                ------------
+//                                |           |
+//                     +--------------------------------+
+//                     |                                |
+//                     | [ ]TX                   VIN[ ] |  POWER IN
+//                     | [ ]RX                   GND[ ] |  GND
+//                     | [ ]RST                  RST[ ] |
+//                GND  | [ ]GND                   5V[ ] |  IBT_2 VCC
+//             Speed1  | [ ]D2                    A7[ ] |
+//             Speed2  | [ ]D3                    A6[ ] |
+//                     | [ ]D4                    A5[ ] |
+//               LPWM  | [ ]D5                    A4[ ] |
+//               L-EN  | [ ]D6                    A3[ ] |
+//               RPWM  | [ ]D7                    A2[ ] |
+//               R-EN  | [ ]D8                    A1[ ] |
+//                     | [ ]D9                    A0[ ] | 
+//                FWD  | [ ]D10                  REF[ ] |
+//                REV  | [ ]D11                  3V3[ ] | 
+//              ACCEL  | [ ]D12                   D1[ ] | 
+//                     |                                |
+//                     +--------------------------------+
+//
+//
+// ---------------------------------------------------------------------------------------
+//                                   NOTES
+// ---------------------------------------------------------------------------------------
+//The shifter on the car will half the voltage so the settings will be:
+//SPEED 1 - DEFAULT -  12v high, 6v Low - 50% Duty Cycle to motors.  PWM = 128
+//SPEED 2 - 24v high , 12v low - 100% duty cycle.  PWM = 255
+
+
+// ---------------------------------------------------------------------------------------
+//                                   definitions
+// ---------------------------------------------------------------------------------------
+
+#define speedOne 2  //defines Pin 2 on the Arduino for 12v mode
+#define speedTwo 3  //defines Pin 3 on the Arduino for 24v mode
+
+#define REnable 8  // This gets wired to R_EN on the IBT_2 motor controller. 
+#define LEnable 6  // This gets wired to L_EN on the IBT_2 motor controller. 
+
+#define RPWM 7  // Wire this to RPWM on the IBT_2 motor controller. 
+#define LPWM 5 // Wire this to LPWM on the IBT_2 motor controller. 
+
+#define FWD 10  // FWD on Select Switch
+#define REV 11  // FWD on Select Switch
+#define ACCEL 12  // FWD on Select Switch
+
+//Below are variables we will be using in the code. 
+int speed1;
+int speed2;
+int forward;
+int reverse;
+int accelerate;
+int pwmWrite = 0; //default boot up speed is 0 
+
+
+void setup() {  //this section just tells the arduino what pins will be doing what
+
+  pinMode (speedOne, INPUT_PULLUP);
+  pinMode (speedTwo, INPUT_PULLUP);
+  pinMode (REnable, OUTPUT);
+  pinMode (LEnable, OUTPUT);
+//  pinMode (toggleEnable, INPUT_PULLUP);
+  pinMode (RPWM, OUTPUT);
+  pinMode (LPWM, OUTPUT);
+  pinMode (FWD, INPUT_PULLUP);
+  pinMode (REV, INPUT_PULLUP);
+  pinMode (ACCEL, INPUT_PULLUP); 
+  digitalWrite(REnable, HIGH); //enable the Microcontroller. This will need to reamin high in order to work.  
+  digitalWrite(LEnable, HIGH); //enable the Microcontroller. This will need to reamin high in order to work.  
+
+}
+
+void loop() {  //THIS IS THE START OF OUR MAIN LOOP
+  
+  speed1 = digitalRead(speedOne); //check to see if the jumper is on lowest setting
+  speed2 = digitalRead(speedTwo); // check to see if the jumper is on the 2nd setting
+  forward = digitalRead(FWD); // check to see if the FWD Controller is selected
+  reverse = digitalRead(REV); // check to see if the REV Controller is selected
+  accelerate = digitalRead(ACCEL); // check to see if the Accelerator is being pressed
+    
+  if (speed1 == 1 && speed2 == 1) {  //this is just a safety measure.  If the jumper pin is not properly on any of the setting pins, the car does nothing. 
+    pwmWrite = 0; // you can change this value to have a default "no pin" speed.  The highest is 255 for 100% power. 
+  }
+
+  if (speed1 == 0) { // this is saying "if the jumper for speed1 is engaged, then change the PWM value to what is entered here. 
+    pwmWrite = 128; //this value determines the speed at the lowest setting. The number is out of 255 so in this case 128/255 is about 50% power.  Change value as you see fit. 
+  }
+  if (speed2 == 0) { // this is saying "if the jumper for speed2 is engaged, then change the PWM value to what is entered here. 
+    pwmWrite = 255; //this value determines the speed at the 2nd setting. The number is out of 255 so in this case 155/255 is about 100% power. Change value as you see fit
+  }
+  if (forward == 0 && reverse == 1) {
+    if (accelerate == 0) {
+      analogWrite(LPWM, 0);
+      analogWrite(RPWM, pwmWrite);
+    }
+    else {
+      analogWrite(RPWM, 0);
+    }
+  }
+  if (forward == 1 && reverse == 0) {
+    if (accelerate == 0) {
+      analogWrite(RPWM, 0);
+      analogWrite(LPWM, pwmWrite);
+    }
+    else {
+      analogWrite(LPWM, 0);
+    }
+  }
+   
+  }
